@@ -52,9 +52,10 @@ func (uh *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	message := "Usuario registrado con exito."
-	utils.RespondWithJson(w, http.StatusCreated, utils.ApiResponse[int]{
+	utils.RespondWithJson(w, http.StatusCreated, utils.ApiResponse[LoginResponseDto]{
 		Success: true,
 		Message: &message,
+		Data:    registerResult.Data,
 	})
 }
 
@@ -87,14 +88,66 @@ func (uh *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (uh *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+	authUser, ok := utils.GetAuthUser(r.Context())
+	if !ok {
+		utils.RespondWithError(w, http.StatusUnauthorized, "Usuario no autorizado")
+		return
+	}
+
+	userExists := uh.userService.DoesUserExist(r.Context(), authUser.UserId)
+	if !userExists {
+		utils.RespondWithError(w, http.StatusNotFound, "Usuario no encontrado")
+		return
+	}
+
+	user := uh.userService.GetUserById(r.Context(), authUser.UserId)
+	if !user.Success || user.Data == nil {
+		utils.RespondWithError(w, http.StatusNotFound, *user.ErrorMessage)
+		return
+	}
+
+	utils.RespondWithJson(w, http.StatusOK, utils.ApiResponse[UserDto]{
+		Success: true,
+		Data:    user.Data,
+	})
+}
+
 func (uh *UserHandler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (uh *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	// TODO: implement user update logic
-}
+	updateUser := UpdateUserDto{}
 
-func (uh *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
-	// TODO: implement user retrieval logic
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&updateUser); err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	authUser, ok := utils.GetAuthUser(r.Context())
+	if !ok {
+		utils.RespondWithError(w, http.StatusUnauthorized, "Usuario no autorizado")
+		return
+	}
+
+	userExists := uh.userService.DoesUserExist(r.Context(), authUser.UserId)
+	if !userExists {
+		utils.RespondWithError(w, http.StatusNotFound, "Usuario no encontrado")
+		return
+	}
+
+	updateResult := uh.userService.UpdateUser(r.Context(), authUser.UserId, &updateUser)
+	if !updateResult.Success || updateResult.Data == nil {
+		utils.RespondWithError(w, http.StatusBadRequest, *updateResult.ErrorMessage)
+		return
+	}
+
+	message := "Usuario actualizado correctamente"
+	utils.RespondWithJson(w, http.StatusOK, utils.ApiResponse[UserDto]{
+		Success: true,
+		Message: &message,
+		Data:    updateResult.Data,
+	})
 }

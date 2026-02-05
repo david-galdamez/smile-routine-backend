@@ -26,6 +26,16 @@ func (ur *UserRepository) IsEmailRegistered(ctx context.Context, email string) b
 	return exists
 }
 
+func (ur *UserRepository) DoesUserExist(ctx context.Context, userId int) bool {
+	exists, err := ur.Db.DoesUserExist(ctx, int32(userId))
+	if err != nil {
+		log.Printf("error checking if user exists, %v", err)
+		return false
+	}
+
+	return exists
+}
+
 func (ur *UserRepository) CreateUser(ctx context.Context, user *RegisterUserDto, passwordHash string, birthDate time.Time) (int, error) {
 	id, err := ur.Db.CreateUser(ctx, database.CreateUserParams{
 		Name:         user.Name,
@@ -46,6 +56,32 @@ func (ur *UserRepository) GetUserByEmail(ctx context.Context, email string) (*da
 	user, err := ur.Db.GetUserByEmail(ctx, email)
 	if err != nil {
 		log.Printf("error getting user, %v", err)
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (ur *UserRepository) GetUserById(ctx context.Context, id int) (*database.User, error) {
+	user, err := ur.Db.GetUserById(ctx, int32(id))
+	if err != nil {
+		log.Printf("error getting user, %v", err)
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (ur *UserRepository) UpdateUser(ctx context.Context, id int, updateUser *UpdateUserDto, birthDate time.Time) (*database.User, error) {
+	user, err := ur.Db.UpdateUser(ctx, database.UpdateUserParams{
+		ID:        int32(id),
+		Name:      updateUser.Name,
+		Email:     updateUser.Email,
+		BirthDate: birthDate,
+		Gender:    string(updateUser.Gender),
+	})
+	if err != nil {
+		log.Printf("error updating user, %v", err)
 		return nil, err
 	}
 

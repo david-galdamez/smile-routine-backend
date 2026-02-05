@@ -37,12 +37,43 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (int32, 
 	return id, err
 }
 
+const doesUserExist = `-- name: DoesUserExist :one
+SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)
+`
+
+func (q *Queries) DoesUserExist(ctx context.Context, id int32) (bool, error) {
+	row := q.db.QueryRowContext(ctx, doesUserExist, id)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT id, name, email, password_hash, birth_date, gender, created_at, updated_at FROM users WHERE email = $1 LIMIT 1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.PasswordHash,
+		&i.BirthDate,
+		&i.Gender,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserById = `-- name: GetUserById :one
+SELECT id, name, email, password_hash, birth_date, gender, created_at, updated_at FROM users WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetUserById(ctx context.Context, id int32) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserById, id)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -66,4 +97,38 @@ func (q *Queries) IsEmailRegistered(ctx context.Context, email string) (bool, er
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const updateUser = `-- name: UpdateUser :one
+UPDATE users SET name = $2, email = $3, birth_date = $4, gender = $5, updated_at = NOW() WHERE id = $1 RETURNING id, name, email, password_hash, birth_date, gender, created_at, updated_at
+`
+
+type UpdateUserParams struct {
+	ID        int32
+	Name      string
+	Email     string
+	BirthDate time.Time
+	Gender    string
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, updateUser,
+		arg.ID,
+		arg.Name,
+		arg.Email,
+		arg.BirthDate,
+		arg.Gender,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.PasswordHash,
+		&i.BirthDate,
+		&i.Gender,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
