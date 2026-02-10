@@ -17,6 +17,7 @@ func NewUserHandler(us *UserService) http.Handler {
 	mux.Handle("POST /logout", middleware.JWTMiddleware(http.HandlerFunc(uh.LogoutUser)))
 	mux.Handle("GET /me", middleware.JWTMiddleware(http.HandlerFunc(uh.GetUser)))
 	mux.Handle("PUT /update", middleware.JWTMiddleware(http.HandlerFunc(uh.UpdateUser)))
+	mux.Handle("PATCH /update-password", middleware.JWTMiddleware(http.HandlerFunc(uh.UpdatePassword)))
 
 	return http.StripPrefix("/api/users", mux)
 }
@@ -149,5 +150,39 @@ func (uh *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		Success: true,
 		Message: &message,
 		Data:    updateResult.Data,
+	})
+}
+
+func (uh *UserHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
+	updatePassword := UpdatePasswordDto{}
+
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&updatePassword); err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	authUser, ok := utils.GetAuthUser(r.Context())
+	if !ok {
+		utils.RespondWithError(w, http.StatusUnauthorized, "Usuario no autorizado")
+		return
+	}
+
+	userExists := uh.userService.DoesUserExist(r.Context(), authUser.UserId)
+	if !userExists {
+		utils.RespondWithError(w, http.StatusNotFound, "Usuario no encontrado")
+		return
+	}
+
+	updateResult := uh.userService.UpdatePassword(r.Context(), authUser.UserId, &updatePassword)
+	if !updateResult.Success {
+		utils.RespondWithError(w, http.StatusBadRequest, *updateResult.ErrorMessage)
+		return
+	}
+
+	message := "Contraseña actualizada correctamente"
+	utils.RespondWithJson(w, http.StatusOK, utils.ApiResponse[string]{
+		Success: true,
+		Message: &message,
 	})
 }

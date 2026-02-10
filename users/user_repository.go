@@ -87,3 +87,16 @@ func (ur *UserRepository) UpdateUser(ctx context.Context, id int, updateUser *Up
 
 	return &user, nil
 }
+
+func (ur *UserRepository) UpdatePassword(ctx context.Context, userId int, passwordHash string) error {
+	err := ur.Db.UpdatePassword(ctx, database.UpdatePasswordParams{
+		ID:           int32(userId),
+		PasswordHash: passwordHash,
+	})
+	if err != nil {
+		log.Printf("error updating password, %v", err)
+		return err
+	}
+
+	return nil
+}

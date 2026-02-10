@@ -99,6 +99,20 @@ func (q *Queries) IsEmailRegistered(ctx context.Context, email string) (bool, er
 	return exists, err
 }
 
+const updatePassword = `-- name: UpdatePassword :exec
+UPDATE users SET password_hash = $2 WHERE id = $1
+`
+
+type UpdatePasswordParams struct {
+	ID           int32
+	PasswordHash string
+}
+
+func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error {
+	_, err := q.db.ExecContext(ctx, updatePassword, arg.ID, arg.PasswordHash)
+	return err
+}
+
 const updateUser = `-- name: UpdateUser :one
 UPDATE users SET name = $2, email = $3, birth_date = $4, gender = $5, updated_at = NOW() WHERE id = $1 RETURNING id, name, email, password_hash, birth_date, gender, created_at, updated_at
 `

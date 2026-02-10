@@ -126,3 +126,30 @@ func (us *UserService) UpdateUser(ctx context.Context, id int, updateUser *Updat
 		Gender:    ApiGender(updateResult.Gender),
 	})
 }
+
+func (us *UserService) UpdatePassword(ctx context.Context, userId int, updatePassword *UpdatePasswordDto) utils.ServiceResponse[any] {
+	user, err := us.userRepository.GetUserById(ctx, userId)
+	if err != nil {
+		return utils.Error[any]("Error al obtener usuario")
+	}
+
+	if user == nil {
+		return utils.Error[any]("Usuario no encontrado")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(updatePassword.OldPassword)); err != nil {
+		return utils.Error[any]("Contraseña actual incorrecta")
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(updatePassword.NewPassword), bcrypt.MinCost)
+	if err != nil {
+		return utils.Error[any]("Error al generar contraseña")
+	}
+
+	err = us.userRepository.UpdatePassword(ctx, userId, string(hashedPassword))
+	if err != nil {
+		return utils.Error[any]("Error al actualizar contraseña")
+	}
+
+	return utils.Ok[any](nil)
+}
