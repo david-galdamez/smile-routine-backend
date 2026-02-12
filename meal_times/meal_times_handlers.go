@@ -19,8 +19,7 @@ func NewMealTimeHandler(mts *MealTimeService) http.Handler {
 	}
 
 	mux.Handle("GET /", middleware.JWTMiddleware(http.HandlerFunc(mth.GetMealTimes)))
-	mux.Handle("POST /", middleware.JWTMiddleware(http.HandlerFunc(mth.RegisterMealTimes)))
-	mux.Handle("PUT /", middleware.JWTMiddleware(http.HandlerFunc(mth.UpdateMealTimes)))
+	mux.Handle("PUT /update", middleware.JWTMiddleware(http.HandlerFunc(mth.UpdateMealTimes)))
 
 	return http.StripPrefix("/api/meal-time", mux)
 }
@@ -41,34 +40,6 @@ func (mth *MealTimeHandler) GetMealTimes(w http.ResponseWriter, r *http.Request)
 	utils.RespondWithJson(w, http.StatusOK, utils.ApiResponse[MealTimeDto]{
 		Success: true,
 		Data:    mealTimeResult.Data,
-	})
-}
-
-func (mth *MealTimeHandler) RegisterMealTimes(w http.ResponseWriter, r *http.Request) {
-	registerMealTime := MealTimeDto{}
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&registerMealTime); err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	authUser, ok := utils.GetAuthUser(r.Context())
-	if !ok {
-		utils.RespondWithError(w, http.StatusUnauthorized, "No Autorizado")
-		return
-	}
-
-	registerResult := mth.mts.RegisterMealTime(r.Context(), authUser.UserId, &registerMealTime)
-	if !registerResult.Success {
-		utils.RespondWithError(w, http.StatusInternalServerError, *registerResult.ErrorMessage)
-		return
-	}
-
-	msg := "Hora de comidas registrada con éxito"
-	utils.RespondWithJson(w, http.StatusOK, utils.ApiResponse[MealTimeDto]{
-		Success: true,
-		Message: &msg,
-		Data:    registerResult.Data,
 	})
 }
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/david-galdamez/smile-routine-backend/database"
 	mealtimes "github.com/david-galdamez/smile-routine-backend/meal_times"
+	"github.com/david-galdamez/smile-routine-backend/user_settings"
 	"github.com/david-galdamez/smile-routine-backend/users"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -43,17 +44,16 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
-	// user endpoints
-	userRepo := users.NewUserRepository(db)
-	userService := users.NewUserService(userRepo)
-
-	router.Handle("/api/users/", users.NewUserHandler(userService))
-
-	// meal time endpoints
 	mealTimeRepo := mealtimes.NewMealTimeRepository(db)
 	mealTimeService := mealtimes.NewMealTimeService(mealTimeRepo)
+	userSettingRepo := user_settings.NewUserSettingsRepository(db)
+	userSettingService := user_settings.NewUserSettingService(userSettingRepo)
+	userRepo := users.NewUserRepository(db)
+	userService := users.NewUserService(userRepo, mealTimeRepo, userSettingRepo)
 
-	router.Handle("/api/meal-time", mealtimes.NewMealTimeHandler(mealTimeService))
+	router.Handle("/api/users/", users.NewUserHandler(userService))
+	router.Handle("/api/meal-time/", mealtimes.NewMealTimeHandler(mealTimeService))
+	router.Handle("/api/user-settings/", user_settings.NewUserSettingsHandler(userSettingService))
 
 	server := &http.Server{
 		Addr:    ":" + port,

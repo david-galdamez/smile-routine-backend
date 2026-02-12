@@ -36,36 +36,6 @@ func (mts *MealTimeService) GetMealTimes(ctx context.Context, userId int) utils.
 	return utils.Ok(mealTimeDto)
 }
 
-func (mts *MealTimeService) RegisterMealTime(ctx context.Context, userId int, registerMealTime *MealTimeDto) utils.ServiceResponse[MealTimeDto] {
-	breakfastTime, err := time.Parse("15:04", registerMealTime.Breakfast)
-	if err != nil {
-		return utils.Error[MealTimeDto]("Formato de hora incorrecto")
-	}
-
-	lunchTime, err := time.Parse("15:04", registerMealTime.Lunch)
-	if err != nil {
-		return utils.Error[MealTimeDto]("Formato de hora incorrecto")
-	}
-
-	dinnerTime, err := time.Parse("15:04", registerMealTime.Dinner)
-	if err != nil {
-		return utils.Error[MealTimeDto]("Formato de hora incorrecto")
-	}
-
-	mealTime, err := mts.mtr.RegisterMealTime(ctx, userId, breakfastTime, lunchTime, dinnerTime)
-	if err != nil {
-		return utils.Error[MealTimeDto]("Error al registrar la hora de comida")
-	}
-
-	mealTimeDto := MealTimeDto{
-		Breakfast: mealTime.Breakfast.Format("15:04"),
-		Lunch:     mealTime.Lunch.Format("15:04"),
-		Dinner:    mealTime.Dinner.Format("15:04"),
-	}
-
-	return utils.Ok(mealTimeDto)
-}
-
 func (mts *MealTimeService) UpdateMealTime(ctx context.Context, userId int, updateRequest *MealTimeDto) utils.ServiceResponse[MealTimeDto] {
 
 	breakfastTime, err := time.Parse("15:04", updateRequest.Breakfast)

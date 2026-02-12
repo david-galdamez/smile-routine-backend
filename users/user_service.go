@@ -6,16 +6,24 @@ import (
 	"strings"
 	"time"
 
+	mealtimes "github.com/david-galdamez/smile-routine-backend/meal_times"
+	"github.com/david-galdamez/smile-routine-backend/user_settings"
 	"github.com/david-galdamez/smile-routine-backend/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService struct {
-	userRepository *UserRepository
+	userRepository         *UserRepository
+	mealTimeRepository     *mealtimes.MealTimeRepository
+	userSettingsRepository *user_settings.UserSettingsRepository
 }
 
-func NewUserService(userRepository *UserRepository) *UserService {
-	return &UserService{userRepository: userRepository}
+func NewUserService(userRepository *UserRepository, mealTimeRepository *mealtimes.MealTimeRepository, userSettingsRepository *user_settings.UserSettingsRepository) *UserService {
+	return &UserService{
+		userRepository:         userRepository,
+		mealTimeRepository:     mealTimeRepository,
+		userSettingsRepository: userSettingsRepository,
+	}
 }
 
 func (us *UserService) IsEmailRegistered(ctx context.Context, email string) bool {
@@ -44,6 +52,22 @@ func (us *UserService) RegisterUser(ctx context.Context, user *RegisterUserDto) 
 	id, err := us.userRepository.CreateUser(ctx, user, string(passwordHash), birthDate)
 	if err != nil {
 		return utils.Error[LoginResponseDto]("Error al crear usuario")
+	}
+
+	timeString := "00:00"
+	value, err := time.Parse("15:34", timeString)
+	if err != nil {
+		return utils.Error[LoginResponseDto]("Error al parsear hora")
+	}
+
+	_, err = us.mealTimeRepository.RegisterMealTime(ctx, id, value, value, value)
+	if err != nil {
+		return utils.Error[LoginResponseDto]("Error al registrar horarios")
+	}
+
+	err = us.userSettingsRepository.RegisterUserSetting(ctx, id)
+	if err != nil {
+		return utils.Error[LoginResponseDto]("Error al registrar configuracion de usuario")
 	}
 
 	token, err := utils.GenerateJWT(id)
