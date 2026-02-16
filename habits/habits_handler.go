@@ -18,12 +18,12 @@ func NewHabitsHandler(habitsService *HabitsService) http.Handler {
 		habitsService: habitsService,
 	}
 
-	mux.Handle("POST /", middleware.JWTMiddleware(http.HandlerFunc(hh.RegisterHabit)))
+	mux.Handle("GET /", middleware.JWTMiddleware(http.HandlerFunc(hh.GetHabits)))
+	mux.Handle("POST /register", middleware.JWTMiddleware(http.HandlerFunc(hh.RegisterHabit)))
 	return http.StripPrefix("/api/habits", mux)
 }
 
 func (hh *HabitsHandler) GetHabits(w http.ResponseWriter, r *http.Request) {
-
 	year := r.URL.Query().Get("year")
 	month := r.URL.Query().Get("month")
 	if year == "" || month == "" {

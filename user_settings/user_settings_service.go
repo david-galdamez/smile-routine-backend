@@ -16,11 +16,19 @@ func NewUserSettingService(userSettingRepo *UserSettingsRepository) *UserSetting
 	}
 }
 
-func (s *UserSettingService) UpdateUserSetting(ctx context.Context, userID int, minutes int) utils.ServiceResponse[any] {
-
-	err := s.userSettingRepo.UpdateUserSetting(ctx, userID, minutes)
+func (s *UserSettingService) GetUserSetting(ctx context.Context, userId int) utils.ServiceResponse[int] {
+	waitMinute, err := s.userSettingRepo.GetUserSetting(ctx, userId)
 	if err != nil {
-		return utils.Error[any]("Error actualizando configuracion")
+		return utils.Error[int]("Error obteniendo configuracion")
 	}
-	return utils.Ok[any](nil)
+	return utils.Ok[int](waitMinute)
+}
+
+func (s *UserSettingService) UpdateUserSetting(ctx context.Context, userID int, minutes int) utils.ServiceResponse[int] {
+
+	waitMinute, err := s.userSettingRepo.UpdateUserSetting(ctx, userID, minutes)
+	if err != nil {
+		return utils.Error[int]("Error actualizando configuracion")
+	}
+	return utils.Ok[int](waitMinute)
 }

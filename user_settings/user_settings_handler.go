@@ -17,9 +17,29 @@ func NewUserSettingsHandler(userSettingService *UserSettingService) http.Handler
 	ush := &UserSettingsHandler{
 		userSettingService: userSettingService,
 	}
-	mux.Handle("PUT /", middleware.JWTMiddleware(http.HandlerFunc(ush.UpdateUserSettings)))
+	mux.Handle("GET /", middleware.JWTMiddleware(http.HandlerFunc(ush.GetUserSettings)))
+	mux.Handle("PUT /update", middleware.JWTMiddleware(http.HandlerFunc(ush.UpdateUserSettings)))
 
 	return http.StripPrefix("/api/user-settings", mux)
+}
+
+func (ush *UserSettingsHandler) GetUserSettings(w http.ResponseWriter, r *http.Request) {
+	authUser, ok := utils.GetAuthUser(r.Context())
+	if !ok {
+		utils.RespondWithError(w, http.StatusUnauthorized, "No estas autorizado")
+		return
+	}
+
+	serviceResult := ush.userSettingService.GetUserSetting(r.Context(), authUser.UserId)
+	if !serviceResult.Success {
+		utils.RespondWithError(w, http.StatusInternalServerError, *serviceResult.ErrorMessage)
+		return
+	}
+
+	utils.RespondWithJson(w, http.StatusOK, utils.ApiResponse[int]{
+		Success: true,
+		Data:    serviceResult.Data,
+	})
 }
 
 func (ush *UserSettingsHandler) UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
@@ -44,9 +64,9 @@ func (ush *UserSettingsHandler) UpdateUserSettings(w http.ResponseWriter, r *htt
 	}
 
 	msg := "Configuracion actualizada correctamente"
-	utils.RespondWithJson(w, http.StatusOK, utils.ApiResponse[UserSettingsUpdateDto]{
+	utils.RespondWithJson(w, http.StatusOK, utils.ApiResponse[int]{
 		Success: true,
 		Message: &msg,
-		Data:    &updateRequest,
+		Data:    updateResponse.Data,
 	})
 }

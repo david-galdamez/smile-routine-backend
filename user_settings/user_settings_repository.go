@@ -2,6 +2,7 @@ package user_settings
 
 import (
 	"context"
+	"log"
 
 	"github.com/david-galdamez/smile-routine-backend/database"
 )
@@ -21,9 +22,23 @@ func (usr *UserSettingsRepository) RegisterUserSetting(ctx context.Context, user
 	})
 }
 
-func (usr *UserSettingsRepository) UpdateUserSetting(ctx context.Context, userId int, minutes int) error {
-	return usr.db.UpdateUserSetting(ctx, database.UpdateUserSettingParams{
+func (usr *UserSettingsRepository) GetUserSetting(ctx context.Context, userId int) (int, error) {
+	waitMinute, err := usr.db.GetUserSetting(ctx, int32(userId))
+	if err != nil {
+		log.Printf("err: %v", err.Error())
+		return 0, err
+	}
+	return int(waitMinute), nil
+}
+
+func (usr *UserSettingsRepository) UpdateUserSetting(ctx context.Context, userId int, minutes int) (int, error) {
+	waitMinute, err := usr.db.UpdateUserSetting(ctx, database.UpdateUserSettingParams{
 		UserID:      int32(userId),
 		WaitMinutes: int32(minutes),
 	})
+	if err != nil {
+		log.Printf("err: %v", err.Error())
+		return 0, err
+	}
+	return int(waitMinute), nil
 }

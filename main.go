@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/david-galdamez/smile-routine-backend/database"
+	"github.com/david-galdamez/smile-routine-backend/habits"
 	mealtimes "github.com/david-galdamez/smile-routine-backend/meal_times"
 	"github.com/david-galdamez/smile-routine-backend/user_settings"
 	"github.com/david-galdamez/smile-routine-backend/users"
@@ -48,12 +49,15 @@ func main() {
 	mealTimeService := mealtimes.NewMealTimeService(mealTimeRepo)
 	userSettingRepo := user_settings.NewUserSettingsRepository(db)
 	userSettingService := user_settings.NewUserSettingService(userSettingRepo)
+	habitsRepo := habits.NewHabitsRepository(db)
+	habitsService := habits.NewHabitsService(habitsRepo)
 	userRepo := users.NewUserRepository(db)
 	userService := users.NewUserService(userRepo, mealTimeRepo, userSettingRepo)
 
 	router.Handle("/api/users/", users.NewUserHandler(userService))
 	router.Handle("/api/meal-time/", mealtimes.NewMealTimeHandler(mealTimeService))
 	router.Handle("/api/user-settings/", user_settings.NewUserSettingsHandler(userSettingService))
+	router.Handle("/api/habits/", habits.NewHabitsHandler(habitsService))
 
 	server := &http.Server{
 		Addr:    ":" + port,
