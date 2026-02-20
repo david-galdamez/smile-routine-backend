@@ -55,7 +55,7 @@ func (us *UserService) RegisterUser(ctx context.Context, user *RegisterUserDto) 
 	}
 
 	timeString := "00:00"
-	value, err := time.Parse("15:34", timeString)
+	value, err := time.Parse("15:04", timeString)
 	if err != nil {
 		return utils.Error[LoginResponseDto]("Error al parsear hora")
 	}

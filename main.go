@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/david-galdamez/smile-routine-backend/appointment"
 	"github.com/david-galdamez/smile-routine-backend/database"
 	"github.com/david-galdamez/smile-routine-backend/habits"
 	mealtimes "github.com/david-galdamez/smile-routine-backend/meal_times"
@@ -47,6 +48,8 @@ func main() {
 
 	mealTimeRepo := mealtimes.NewMealTimeRepository(db)
 	mealTimeService := mealtimes.NewMealTimeService(mealTimeRepo)
+	appointmentRepo := appointment.NewAppointmentRepository(db)
+	appointmentService := appointment.NewAppointmentService(appointmentRepo)
 	userSettingRepo := user_settings.NewUserSettingsRepository(db)
 	userSettingService := user_settings.NewUserSettingService(userSettingRepo)
 	habitsRepo := habits.NewHabitsRepository(db)
@@ -58,6 +61,7 @@ func main() {
 	router.Handle("/api/meal-time/", mealtimes.NewMealTimeHandler(mealTimeService))
 	router.Handle("/api/user-settings/", user_settings.NewUserSettingsHandler(userSettingService))
 	router.Handle("/api/habits/", habits.NewHabitsHandler(habitsService))
+	router.Handle("/api/appointment/", appointment.NewAppointmentHandler(appointmentService))
 
 	server := &http.Server{
 		Addr:    ":" + port,
