@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"time"
 )
 
@@ -46,6 +47,57 @@ func (q *Queries) GetHabits(ctx context.Context, arg GetHabitsParams) ([]GetHabi
 	for rows.Next() {
 		var i GetHabitsRow
 		if err := rows.Scan(&i.Day, &i.CompletedCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getHabitsOfDay = `-- name: GetHabitsOfDay :many
+SELECT
+    h.id,
+    m.meal_name,
+    CASE
+        WHEN h.id IS NULL THEN 'pending'
+        WHEN h.completed = true THEN 'completed'
+        ELSE 'failed'
+    END AS status
+FROM meals m
+LEFT JOIN habits h
+    ON h.meal_id = m.id
+    AND h.user_id = $1
+    AND h.habit_date::date = $2::date
+ORDER BY m.id
+`
+
+type GetHabitsOfDayParams struct {
+	UserID  int32
+	Column2 time.Time
+}
+
+type GetHabitsOfDayRow struct {
+	ID       sql.NullInt64
+	MealName string
+	Status   string
+}
+
+func (q *Queries) GetHabitsOfDay(ctx context.Context, arg GetHabitsOfDayParams) ([]GetHabitsOfDayRow, error) {
+	rows, err := q.db.QueryContext(ctx, getHabitsOfDay, arg.UserID, arg.Column2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetHabitsOfDayRow
+	for rows.Next() {
+		var i GetHabitsOfDayRow
+		if err := rows.Scan(&i.ID, &i.MealName, &i.Status); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

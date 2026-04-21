@@ -46,14 +46,41 @@ func (s *HabitsService) GetHabits(ctx context.Context, userId int, year string, 
 		}
 
 		newHabit := HabitDto{
-			HabitDate: dateString,
+			HabitDate:  dateString,
 			Porcentage: porcentage,
 		}
 
 		habitsDto = append(habitsDto, newHabit)
 	}
 
-	return utils.Ok[[]HabitDto](habitsDto)
+	return utils.Ok(habitsDto)
+}
+
+func (s *HabitsService) GetHabitsOfDay(ctx context.Context, userId int, habitDate string) utils.ServiceResponse[[]HabitOfDayDto] {
+	if habitDate == "" {
+		return utils.Error[[]HabitOfDayDto]("La fecha es requerida")
+	}
+
+	habitDateValue, err := time.Parse("2006-01-02", habitDate)
+	if err != nil {
+		return utils.Error[[]HabitOfDayDto]("Formato de fecha incorrecto")
+	}
+
+	habits, err := s.habitsRepository.GetHabitsOfDay(ctx, userId, habitDateValue)
+	if err != nil {
+		return utils.Error[[]HabitOfDayDto]("Error al obtener los hábitos")
+	}
+
+	habitsDto := make([]HabitOfDayDto, 0, len(habits))
+	for _, habit := range habits {
+		newHabit := HabitOfDayDto{}
+		newHabit.Id = utils.NullInt64ToPtr(habit.ID)
+		newHabit.MealName = habit.MealName
+		newHabit.Status = HabitStatus(habit.Status)
+		habitsDto = append(habitsDto, newHabit)
+	}
+
+	return utils.Ok(habitsDto)
 }
 
 func (s *HabitsService) RegisterHabit(ctx context.Context, userId int, registerRequest *RegisterHabitDto) utils.ServiceResponse[any] {

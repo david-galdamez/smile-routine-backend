@@ -7,34 +7,103 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"time"
 )
 
 const createAppointment = `-- name: CreateAppointment :one
-INSERT INTO appointments (user_id, appointment_date, completed)
-VALUES ($1, $2, $3) RETURNING id, user_id, appointment_date, completed
+INSERT INTO appointments (user_id, appointment_date, appointment_time, title, note)
+VALUES ($1, $2, $3, $4, $5) RETURNING id, user_id, appointment_date, appointment_time, title, note, completed, created_at
 `
 
 type CreateAppointmentParams struct {
 	UserID          int32
 	AppointmentDate time.Time
-	Completed       bool
+	AppointmentTime time.Time
+	Title           string
+	Note            sql.NullString
 }
 
 func (q *Queries) CreateAppointment(ctx context.Context, arg CreateAppointmentParams) (Appointment, error) {
-	row := q.db.QueryRowContext(ctx, createAppointment, arg.UserID, arg.AppointmentDate, arg.Completed)
+	row := q.db.QueryRowContext(ctx, createAppointment,
+		arg.UserID,
+		arg.AppointmentDate,
+		arg.AppointmentTime,
+		arg.Title,
+		arg.Note,
+	)
 	var i Appointment
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.AppointmentDate,
+		&i.AppointmentTime,
+		&i.Title,
+		&i.Note,
 		&i.Completed,
+		&i.CreatedAt,
 	)
 	return i, err
 }
 
+const getAppointmentById = `-- name: GetAppointmentById :one
+SELECT id, user_id, appointment_date, appointment_time, title, note, completed, created_at FROM appointments WHERE id = $1
+`
+
+func (q *Queries) GetAppointmentById(ctx context.Context, id int64) (Appointment, error) {
+	row := q.db.QueryRowContext(ctx, getAppointmentById, id)
+	var i Appointment
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.AppointmentDate,
+		&i.AppointmentTime,
+		&i.Title,
+		&i.Note,
+		&i.Completed,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getAppointments = `-- name: GetAppointments :many
+SELECT id, user_id, appointment_date, appointment_time, title, note, completed, created_at FROM appointments WHERE user_id = $1 AND completed = FALSE
+`
+
+func (q *Queries) GetAppointments(ctx context.Context, userID int32) ([]Appointment, error) {
+	rows, err := q.db.QueryContext(ctx, getAppointments, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Appointment
+	for rows.Next() {
+		var i Appointment
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.AppointmentDate,
+			&i.AppointmentTime,
+			&i.Title,
+			&i.Note,
+			&i.Completed,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateAppointment = `-- name: UpdateAppointment :one
-UPDATE appointments SET completed = $1 WHERE id = $2 RETURNING id, user_id, appointment_date, completed
+UPDATE appointments SET completed = $1 WHERE id = $2 RETURNING id, user_id, appointment_date, appointment_time, title, note, completed, created_at
 `
 
 type UpdateAppointmentParams struct {
@@ -49,7 +118,11 @@ func (q *Queries) UpdateAppointment(ctx context.Context, arg UpdateAppointmentPa
 		&i.ID,
 		&i.UserID,
 		&i.AppointmentDate,
+		&i.AppointmentTime,
+		&i.Title,
+		&i.Note,
 		&i.Completed,
+		&i.CreatedAt,
 	)
 	return i, err
 }

@@ -15,3 +15,19 @@ LEFT JOIN habits h
     AND h.user_id = $1
 GROUP BY d.day
 ORDER BY d.day;
+
+-- name: GetHabitsOfDay :many
+SELECT
+    h.id,
+    m.meal_name,
+    CASE
+        WHEN h.id IS NULL THEN 'pending'
+        WHEN h.completed = true THEN 'completed'
+        ELSE 'failed'
+    END AS status
+FROM meals m
+LEFT JOIN habits h
+    ON h.meal_id = m.id
+    AND h.user_id = $1
+    AND h.habit_date::date = $2::date
+ORDER BY m.id;

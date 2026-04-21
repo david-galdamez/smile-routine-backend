@@ -3,6 +3,7 @@ package habits
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/david-galdamez/smile-routine-backend/middleware"
 	"github.com/david-galdamez/smile-routine-backend/utils"
@@ -19,6 +20,7 @@ func NewHabitsHandler(habitsService *HabitsService) http.Handler {
 	}
 
 	mux.Handle("GET /", middleware.JWTMiddleware(http.HandlerFunc(hh.GetHabits)))
+	mux.Handle("GET /day", middleware.JWTMiddleware(http.HandlerFunc(hh.GetHabitsOfDay)))
 	mux.Handle("POST /register", middleware.JWTMiddleware(http.HandlerFunc(hh.RegisterHabit)))
 	return http.StripPrefix("/api/habits", mux)
 }
@@ -44,6 +46,30 @@ func (hh *HabitsHandler) GetHabits(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.RespondWithJson(w, http.StatusOK, utils.ApiResponse[[]HabitDto]{
+		Success: true,
+		Data:    habitsResult.Data,
+	})
+}
+
+func (hh *HabitsHandler) GetHabitsOfDay(w http.ResponseWriter, r *http.Request) {
+	habitDate := r.URL.Query().Get("date")
+	if habitDate == "" {
+		habitDate = time.Now().Format("2006-01-02")
+	}
+
+	authUser, ok := utils.GetAuthUser(r.Context())
+	if !ok {
+		utils.RespondWithError(w, http.StatusUnauthorized, "No autorizado")
+		return
+	}
+
+	habitsResult := hh.habitsService.GetHabitsOfDay(r.Context(), authUser.UserId, habitDate)
+	if !habitsResult.Success || habitsResult.Data == nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, *habitsResult.ErrorMessage)
+		return
+	}
+
+	utils.RespondWithJson(w, http.StatusOK, utils.ApiResponse[[]HabitOfDayDto]{
 		Success: true,
 		Data:    habitsResult.Data,
 	})

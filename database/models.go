@@ -13,7 +13,11 @@ type Appointment struct {
 	ID              int64
 	UserID          int32
 	AppointmentDate time.Time
+	AppointmentTime time.Time
+	Title           string
+	Note            sql.NullString
 	Completed       bool
+	CreatedAt       time.Time
 }
 
 type Habit struct {

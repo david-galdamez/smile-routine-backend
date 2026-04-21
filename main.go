@@ -17,10 +17,7 @@ import (
 )
 
 func main() {
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatalf("error getting .env file: %v", err.Error())
-	}
+	godotenv.Load(".env")
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -46,12 +43,11 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
+	userSettingRepo := user_settings.NewUserSettingsRepository(db)
 	mealTimeRepo := mealtimes.NewMealTimeRepository(db)
-	mealTimeService := mealtimes.NewMealTimeService(mealTimeRepo)
+	mealTimeService := mealtimes.NewMealTimeService(mealTimeRepo, userSettingRepo)
 	appointmentRepo := appointment.NewAppointmentRepository(db)
 	appointmentService := appointment.NewAppointmentService(appointmentRepo)
-	userSettingRepo := user_settings.NewUserSettingsRepository(db)
-	userSettingService := user_settings.NewUserSettingService(userSettingRepo)
 	habitsRepo := habits.NewHabitsRepository(db)
 	habitsService := habits.NewHabitsService(habitsRepo)
 	userRepo := users.NewUserRepository(db)
@@ -59,7 +55,6 @@ func main() {
 
 	router.Handle("/api/users/", users.NewUserHandler(userService))
 	router.Handle("/api/meal-time/", mealtimes.NewMealTimeHandler(mealTimeService))
-	router.Handle("/api/user-settings/", user_settings.NewUserSettingsHandler(userSettingService))
 	router.Handle("/api/habits/", habits.NewHabitsHandler(habitsService))
 	router.Handle("/api/appointment/", appointment.NewAppointmentHandler(appointmentService))
 

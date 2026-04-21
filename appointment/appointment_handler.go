@@ -18,11 +18,12 @@ func NewAppointmentHandler(service *AppointmentService) http.Handler {
 	appo := &AppointmentHandler{service: service}
 	mux.Handle("POST /register", middleware.JWTMiddleware(http.HandlerFunc(appo.RegisterAppointment)))
 	mux.Handle("PUT /update/{id}", middleware.JWTMiddleware(http.HandlerFunc(appo.UpdateAppointment)))
+	mux.Handle("GET /", middleware.JWTMiddleware(http.HandlerFunc(appo.GetAppointments)))
+	mux.Handle("GET /{id}", middleware.JWTMiddleware(http.HandlerFunc(appo.GetAppointmentById)))
 	return http.StripPrefix("/api/appointment", mux)
 }
 
 func (ah *AppointmentHandler) RegisterAppointment(w http.ResponseWriter, r *http.Request) {
-
 	registerDto := RegisterAppointmentDto{}
 
 	authUser, ok := utils.GetAuthUser(r.Context())
@@ -74,6 +75,54 @@ func (ah *AppointmentHandler) UpdateAppointment(w http.ResponseWriter, r *http.R
 	utils.RespondWithJson(w, http.StatusOK, utils.ApiResponse[AppointmentDto]{
 		Success: true,
 		Data:    updateResult.Data,
+		Message: &msg,
+	})
+}
+
+func (ah *AppointmentHandler) GetAppointments(w http.ResponseWriter, r *http.Request) {
+	authUser, ok := utils.GetAuthUser(r.Context())
+	if !ok {
+		utils.RespondWithError(w, http.StatusUnauthorized, "No autorizado")
+		return
+	}
+
+	result := ah.service.GetAppointments(r.Context(), authUser.UserId)
+	if !result.Success || result.Data == nil {
+		utils.RespondWithError(w, http.StatusBadRequest, *result.ErrorMessage)
+		return
+	}
+
+	msg := "Citas obtenidas exitosamente"
+	utils.RespondWithJson(w, http.StatusOK, utils.ApiResponse[[]AppointmentDto]{
+		Success: true,
+		Data:    result.Data,
+		Message: &msg,
+	})
+}
+
+func (ah *AppointmentHandler) GetAppointmentById(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		utils.RespondWithError(w, http.StatusBadRequest, "ID de cita no proporcionado")
+		return
+	}
+
+	parsedId, err := strconv.Atoi(id)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "ID de cita no válido")
+		return
+	}
+
+	result := ah.service.GetAppointmentById(r.Context(), parsedId)
+	if !result.Success || result.Data == nil {
+		utils.RespondWithError(w, http.StatusBadRequest, *result.ErrorMessage)
+		return
+	}
+
+	msg := "Cita obtenida exitosamente"
+	utils.RespondWithJson(w, http.StatusOK, utils.ApiResponse[AppointmentDto]{
+		Success: true,
+		Data:    result.Data,
 		Message: &msg,
 	})
 }
